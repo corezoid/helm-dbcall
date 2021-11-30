@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appName }}-deployment
+  labels:
+    app: {{ .Values.product }}
+    tier: {{ .Values.appName }}
+spec:
+  selector:
+    matchLabels:
+      tier: {{ .Values.appName }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  replicas: {{ .Values.minReplicas }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/dbcall-configmap.yaml") . | sha256sum }}
+      labels:
+        app: {{ .Values.product }}
+        tier: {{ .Values.appName }}
+    spec:
+      terminationGracePeriodSeconds: 40
+      containers:
+        - name: {{ .Values.appName }}
+          image: {{ .Values.image.registry }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          env:
+          - name: APP_ENV
+            value: production
+          - name: DATABASE_HOST
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.global.corezoid_dbcall.secret.name }}
+                key: database_host
+          - name: DATABASE_PORT
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.global.corezoid_dbcall.secret.name }}
+                key: database_port
+          - name: DATABASE_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.global.corezoid_dbcall.secret.name }}
+                key: database_username
+          - name: DATABASE_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.global.corezoid_dbcall.secret.name }}
+                key: database_password
+          - name: DATABASE_DATABASE
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Values.global.corezoid_dbcall.secret.name }}
+                key: database_database
+
+          command: ["./dbcall"]
+          args: ["--config_dir=/go/bin/config", "--schema_dir=/go/bin/schema"]
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - name: {{ .Values.appName }}-config
+              mountPath: /go/bin/config/production.json
+              subPath: production.json
+          readinessProbe:
+            httpGet:
+              port: 9300
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              port: 9200
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 3
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+      imagePullSecrets:
+        - name: corezoid-secret
+      volumes:
+        - name: {{ .Values.appName }}-config
+          configMap:
+            name: {{ .Values.appName }}-config

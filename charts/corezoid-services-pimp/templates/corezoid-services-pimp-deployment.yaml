@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Values.appName }}
+  labels:
+    app: {{ .Values.product }}
+    tier: {{ .Values.appName }}
+spec:
+  selector:
+    matchLabels:
+      tier: {{ .Values.appName }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  replicas: {{ .Values.global.pimp.minReplicas }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/corezoid-services-pimp-configmap.yaml") . | sha256sum }}
+      labels:
+        environment: {{ .Release.Namespace }}
+        app: {{ .Values.product }}
+        tier: {{ .Values.appName }}
+    spec:
+      terminationGracePeriodSeconds: 40
+      serviceAccountName: services-pimp-acc
+      containers:
+        - name: {{ .Values.appName }}
+          image: {{ .Values.image.registry }}{{ .Values.image.repository }}:{{ .Values.image.tag }}
+          args:
+            - --config=/ebsmnt/services-pimp/config/servicespimp.json
+          env:
+            - name: INTERNAL_DOCKER_REGISTRY_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.pimp.secret.name }}
+                  key: internal_docker_registry_host
+            - name: INTERNAL_DOCKER_REGISTRY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.pimp.secret.name }}
+                  key: internal_docker_registry_username
+            - name: INTERNAL_DOCKER_REGISTRY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.pimp.secret.name }}
+                  key: internal_docker_registry_password
+
+            - name: EXTERNAL_DOCKER_REGISTRY_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.pimp.secret.name }}
+                  key: corezoid-docker-registry-host
+            - name: EXTERNAL_DOCKER_REGISTRY_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.pimp.secret.name }}
+                  key: corezoid-docker-registry-username
+            - name: EXTERNAL_DOCKER_REGISTRY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.global.pimp.secret.name }}
+                  key: corezoid-docker-registry-password
+          imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+          ports:
+          - containerPort: 8080
+          resources:
+            {{ .Values.global.pimp.resources | toYaml | indent 12 | trim }}
+          volumeMounts:
+            - name: {{ .Values.appName }}-config
+              mountPath: /ebsmnt/services-pimp/config/servicespimp.json
+              subPath: servicespimp.json
+      imagePullSecrets:
+        - name: corezoid-secret
+      volumes:
+        - name: {{ .Values.appName }}-config
+          configMap:
+            name: {{ .Values.appName }}-config

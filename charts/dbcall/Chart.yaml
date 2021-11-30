@@ -1,0 +1,8 @@
+apiVersion: v1
+name: dbcall
+version: 0.1
+appVersion: 2
+description: Chart for DBCall.
+home: https://corezoid.com/
+icon: https://corezoid.com/static/ce1da2c78726bb5ce1cf53b002dac519/62341/CorezoidProduct.png
+engine: gotpl

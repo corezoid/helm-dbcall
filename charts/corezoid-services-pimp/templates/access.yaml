@@ -1,0 +1,44 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: services-pimp-role
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "create", "delete", "update"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "create", "delete", "update"]
+  - apiGroups: [""]
+    resources: ["pods/portforward"]
+    verbs: ["create", "delete", "update"]
+  - apiGroups: ["extensions", "apps"]
+    resources: ["deployments"]
+    verbs: ["get", "list", "create", "delete", "update"]
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "create", "delete", "update"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "create", "delete", "update"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "create", "delete", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list", "create", "delete", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: services-pimp-binding-acc
+subjects:
+  - kind: ServiceAccount
+    name: services-pimp-acc
+    namespace: {{ .Release.Namespace }}
+    apiGroup: ""
+roleRef:
+  kind: ClusterRole
+  name: services-pimp-role
+  apiGroup: ""

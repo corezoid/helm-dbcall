@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.appName }}-config
+data:
+      production.json: |
+        {
+            "name": "dbcall",
+            "__dbcall-image-path": "docker-hub.middleware.biz/gitcall/dunder-dbcall:{{ .Values.dunder_dbcall_tag }}",
+            "use-prometheus-metrics": true,
+            "__dbcall-liveness-port": 9200,
+            "__dbcall-readiness-port": 9300,
+            "liveness-port": 9200,
+            "readiness-port": 9300,
+            "logger": {
+                "level": "debug",
+                "transports": [ "console" ]
+            },
+            "api": {
+                "server": {
+                    "host": "0.0.0.0",
+                    "port": 8080
+                }
+            },
+            "services-pimp": {
+                "host": "http://corezoid-services-pimp-service",
+                "port": 8080,
+                "timeoutMs": 5000
+            },
+            "database": {
+{{/*                "host": "${DATABASE_HOST}",*/}}
+{{/*                "port": ${DATABASE_PORT},*/}}
+{{/*                "username": "${DATABASE_USERNAME}",*/}}
+{{/*                "password": "${DATABASE_PASSWORD}",*/}}
+{{/*                "database": "dbcall",*/}}
+{{/*                "database" : "${DATABASE_DATABASE}",*/}}
+                "host": "{{ .Values.global.corezoid_dbcall.secret.data.database_host }}",
+                "port": {{ .Values.global.corezoid_dbcall.secret.data.database_port }},
+                "username": "{{ .Values.global.corezoid_dbcall.secret.data.database_username }}",
+                "password": "{{ .Values.global.corezoid_dbcall.secret.data.database_password }}",
+                "database" : "{{ .Values.global.corezoid_dbcall.secret.data.database_database }}",
+                "timeoutMs": 5000,
+                "ssl": false,
+                "max-open-conns-per-db": 4
+            },
+            "prom-api": "{{ .Values.global.corezoid_dbcall.prometeus_api  }}"
+        }

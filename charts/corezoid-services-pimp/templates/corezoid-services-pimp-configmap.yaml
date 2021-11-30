@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.appName }}-config
+data:
+      servicespimp.json: |
+        {
+            "api": {
+                "server": {
+                    "host": "0.0.0.0",
+                    "port": 8080
+                }
+            },
+
+            "k8s": {
+                "image_pull_secrets": [
+                  {
+                    "secret_name": "corezoid-secret",
+                    "docker_config": {
+                      "auths":  {
+                        "${EXTERNAL_DOCKER_REGISTRY_HOST}": {
+                          "username": "${EXTERNAL_DOCKER_REGISTRY_USERNAME}",
+                          "password": "${EXTERNAL_DOCKER_REGISTRY_PASSWORD}"
+                        },
+                        "${INTERNAL_DOCKER_REGISTRY_HOST}": {
+                          "username": "${INTERNAL_DOCKER_REGISTRY_USERNAME}",
+                          "password": "${INTERNAL_DOCKER_REGISTRY_PASSWORD}"
+                        }
+                      }
+                    }
+                  }
+                ],
+                "apply_timeout_ms": 20000,
+                "namespace_cache_ms": 3600000,
+                "secrets_cache_ms": 3600000,
+                "auth": {
+                  "in_cluster": true
+                }
+            },
+
+            "sentry": {
+              "enabled":  false,
+              "dsn": "http://f78b5dd9cff14a1ebdc6ebb126c54f01@10.70.0.60:30090/5",
+              "environment": "dev",
+              "attach_stacktrace": true,
+              "levels": ["panic", "fatal", "error", "warning"]
+             }
+
+        }
